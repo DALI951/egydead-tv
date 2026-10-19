@@ -114,6 +114,7 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 progressBar.setVisibility(View.GONE);
+                injectFocusHook(view);
                 // Focus first input if the page opened a search box (keyboard pops automatically)
                 view.evaluateJavascript(
                     "(function(){" +
@@ -180,20 +181,24 @@ public class MainActivity extends Activity {
     }
 
     // Inject focus listeners for inputs so keyboard auto-shows on remote focus
+    private void injectFocusHook(WebView view) {
+        view.evaluateJavascript(
+            "(function(){" +
+            "  if(window.__tvHooked)return; window.__tvHooked=1;" +
+            "  function h(e){var t=e.target;" +
+            "    if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)){" +
+            "      TvBridge.inputFocus(e.type==='focusin');" +
+            "    }}" +
+            "  document.addEventListener('focusin',h,true);" +
+            "  document.addEventListener('focusout',h,true);" +
+            "})()", null);
+    }
+
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus && webView != null) {
-            webView.evaluateJavascript(
-                "(function(){" +
-                "  if(window.__tvHooked)return; window.__tvHooked=1;" +
-                "  function h(e){var t=e.target;" +
-                "    if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)){" +
-                "      TvBridge.inputFocus(e.type==='focusin');" +
-                "    }}" +
-                "  document.addEventListener('focusin',h,true);" +
-                "  document.addEventListener('focusout',h,true);" +
-                "})()", null);
+            injectFocusHook(webView);
         }
     }
 
